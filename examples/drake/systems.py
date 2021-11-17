@@ -1,4 +1,4 @@
-from pydrake.geometry import (ConnectDrakeVisualizer, DispatchLoadMessage)
+# from pydrake.geometry import (ConnectDrakeVisualizer, DispatchLoadMessage)
 from pydrake.lcm import DrakeLcm  # Required else "ConnectDrakeVisualizer(): incompatible function arguments."
 from pydrake.systems.framework import DiagramBuilder
 from pydrake.systems.primitives import SignalLogger, Demultiplexer, LogOutput

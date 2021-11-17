@@ -1,7 +1,7 @@
 import numpy as np
+from pydrake.common.eigen_geometry import Isometry3
 from pydrake.trajectories import PiecewisePolynomial
 from pydrake.math import RollPitchYaw
-from pydrake.util.eigen_geometry import Isometry3
 
 
 PlanTypes = [

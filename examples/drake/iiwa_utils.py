@@ -3,7 +3,7 @@ import math
 import numpy as np
 from itertools import count
 
-from pydrake.multibody.multibody_tree import WeldJoint
+from pydrake.multibody.tree import WeldJoint
 
 from examples.drake.utils import create_transform, get_model_bodies, set_joint_positions, get_movable_joints
 

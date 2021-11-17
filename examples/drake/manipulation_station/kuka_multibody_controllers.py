@@ -5,11 +5,10 @@ from pydrake.all import (
     BasicVector,
     LeafSystem,
     PortDataType,
-    MathematicalProgram,
     AbstractValue,
 )
+from pydrake.multibody.tree import MultibodyForces
 
-from pydrake.multibody.multibody_tree import MultibodyForces
 from examples.drake.utils import get_model_actuators
 
 
@@ -115,7 +114,7 @@ class KukaMultibodyController(LeafSystem):
         if (self.print_period and
                 context.get_time() - self.last_print_time
                 >= self.print_period):
-            print "t: ", context.get_time()
+            print("t: ", context.get_time())
             self.last_print_time = context.get_time()
         control_output = context.get_discrete_state_vector().get_value()
         y = y_data.get_mutable_value()

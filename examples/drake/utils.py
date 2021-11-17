@@ -7,16 +7,14 @@ from itertools import product
 
 from drake import lcmt_viewer_load_robot
 from pydrake.all import (Quaternion, RigidTransform, RotationMatrix)
-from pydrake.geometry import DispatchLoadMessage
+from pydrake.common.eigen_geometry import Isometry3
 from pydrake.lcm import DrakeMockLcm
 from pydrake.math import RollPitchYaw
 from pydrake.multibody.inverse_kinematics import InverseKinematics
-from pydrake.multibody.multibody_tree import (ModelInstanceIndex, WeldJoint, RevoluteJoint, PrismaticJoint, BodyIndex,
-                                              JointIndex, JointActuatorIndex, FrameIndex)
-from pydrake.solvers.mathematicalprogram import SolutionResult
-from pydrake.util.eigen_geometry import Isometry3
+from pydrake.multibody.tree import ModelInstanceIndex, BodyIndex, JointIndex, JointActuatorIndex, FrameIndex, \
+    PrismaticJoint, RevoluteJoint, WeldJoint
 
-user_input = raw_input
+user_input = input
 
 BoundingBox = namedtuple('BoundingBox', ['center', 'extent'])
 
@@ -361,7 +359,7 @@ def solve_inverse_kinematics(mbp, target_frame, target_pose,
     prog = ik_scene.prog()
     prog.SetInitialGuess(ik_scene.q(), initial_guess)
     result = prog.Solve()
-    if result != SolutionResult.kSolutionFound:
+    if result != prog.is_success():
         return None
     return prog.GetSolution(ik_scene.q())
 
@@ -411,7 +409,9 @@ def get_box_from_geom(scene_graph, visual_only=True):
     # https://github.com/RussTedrake/underactuated/blob/master/src/underactuated/meshcat_visualizer.py
     # https://github.com/RobotLocomotion/drake/blob/master/lcmtypes/lcmt_viewer_draw.lcm
     mock_lcm = DrakeMockLcm()
-    DispatchLoadMessage(scene_graph, mock_lcm)
+
+    # FIXME: fix this?!?
+    # DispatchLoadMessage(scene_graph, mock_lcm)
     load_robot_msg = lcmt_viewer_load_robot.decode(
         mock_lcm.get_last_published_message("DRAKE_VIEWER_LOAD_ROBOT"))
     # 'link', 'num_links'

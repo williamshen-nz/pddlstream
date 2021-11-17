@@ -6,7 +6,6 @@ from pydrake.all import (
     LeafSystem,
     PortDataType,
 )
-from pydrake.util.eigen_geometry import Isometry3
 from pydrake.trajectories import (
     PiecewisePolynomial
 )
@@ -114,7 +113,7 @@ class ManipStationPlanRunner(LeafSystem):
         for i in range(2, self.num_plans):
             self.t_plan[i + 1] = \
                 self.t_plan[i] + kuka_plans[i].get_duration() * 1.1
-        print "Plan starting time\n", self.t_plan
+        print("Plan starting time\n", self.t_plan)
 
 
     def CalcIiwaCommand(self, context, y_data):
@@ -165,7 +164,7 @@ class ManipStationPlanRunner(LeafSystem):
         # print current simulation time
         if (self.print_period and
                 t - self.last_print_time >= self.print_period):
-            print "t: ", context.get_time()
+            print("t: ", context.get_time())
             self.last_print_time = context.get_time()
 
 

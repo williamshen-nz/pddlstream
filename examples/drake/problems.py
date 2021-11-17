@@ -5,8 +5,7 @@ import pydrake
 from pydrake.common import FindResourceOrThrow
 from pydrake.examples.manipulation_station import ManipulationStation, IiwaCollisionModel
 from pydrake.geometry import (SceneGraph)
-from pydrake.multibody.multibody_tree.multibody_plant import MultibodyPlant
-from pydrake.multibody.multibody_tree.parsing import AddModelFromSdfFile
+from pydrake.multibody.plant import MultibodyPlant
 
 from examples.drake.systems import build_manipulation_station, build_diagram
 from examples.drake.iiwa_utils import weld_gripper, DOOR_CLOSED, DOOR_OPEN, open_wsg50_gripper
@@ -125,6 +124,8 @@ def load_station(time_step=0.0, **kwargs):
     robot = plant.GetModelInstanceByName('iiwa')
     gripper = plant.GetModelInstanceByName('gripper')
     station.AddCupboard()
+
+    # https://github.com/RobotLocomotion/drake/blob/master/bindings/pydrake/multibody/test/plant_test.py
     brick = AddModelFromSdfFile(file_name=object_file_path, model_name="brick",
                                 plant=plant, scene_graph=scene_graph)
     station.Finalize()
