@@ -7,19 +7,27 @@ from pydrake.trajectories import PiecewisePolynomial
 from examples.drake.utils import get_configuration, user_input
 
 
-def step_trajectories(diagram, diagram_context, plant_context, trajectories, time_step=0.001, teleport=False):
+def step_trajectories(
+    diagram,
+    diagram_context,
+    plant_context,
+    trajectories,
+    time_step=0.001,
+    teleport=False,
+):
     diagram.Publish(diagram_context)
-    user_input('Step?')
+    user_input("Step?")
     for traj in trajectories:
         if teleport:
-            traj.path = traj.path[::len(traj.path)-1]
+            traj.path = traj.path[:: len(traj.path) - 1]
         for _ in traj.iterate(plant_context):
             diagram.Publish(diagram_context)
             if time_step is None:
-                user_input('Continue?')
+                user_input("Continue?")
             else:
                 time.sleep(time_step)
-    user_input('Finish?')
+    user_input("Finish?")
+
 
 ##################################################
 
@@ -37,7 +45,7 @@ def convert_splines(mbp, robot, gripper, context, trajectories):
     for i, traj in enumerate(trajectories):
         traj.path[-1].assign(context)
         joints = traj.joints
-        if len(joints) == 8: # TODO: remove inclusion of door joints
+        if len(joints) == 8:  # TODO: remove inclusion of door joints
             joints = joints[:7]
 
         if len(joints) == 2:
@@ -48,7 +56,7 @@ def convert_splines(mbp, robot, gripper, context, trajectories):
             raise ValueError(joints)
         d = spline.rows()
         n = spline.get_number_of_segments()
-        print('{}) d={}, n={}, duration={:.3f}'.format(i, d, n, spline.duration(n-1)))
+        print("{}) d={}, n={}, duration={:.3f}".format(i, d, n, spline.duration(n - 1)))
         splines.append(spline)
         _, gripper_setpoint = get_configuration(mbp, context, gripper)
         gripper_setpoints.append(gripper_setpoint)
@@ -57,7 +65,8 @@ def convert_splines(mbp, robot, gripper, context, trajectories):
 
 def compute_duration(splines, extra_time=5.0):
     from .manipulation_station.robot_plans import PlanBase
-    sim_duration = 0.
+
+    sim_duration = 0.0
     for spline in splines:
         if isinstance(spline, PlanBase):
             sim_duration += spline.get_duration() * 1.1
@@ -66,7 +75,9 @@ def compute_duration(splines, extra_time=5.0):
     sim_duration += extra_time
     return sim_duration
 
+
 ##################################################
+
 
 def simulate_splines(diagram, diagram_context, sim_duration, real_time_rate=1.0):
     simulator = Simulator(diagram, diagram_context)
@@ -75,6 +86,6 @@ def simulate_splines(diagram, diagram_context, sim_duration, real_time_rate=1.0)
     simulator.Initialize()
 
     diagram.Publish(diagram_context)
-    user_input('Simulate?')
+    user_input("Simulate?")
     simulator.StepTo(sim_duration)
-    user_input('Finish?')
+    user_input("Finish?")
