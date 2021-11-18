@@ -108,12 +108,20 @@ def matrix_from_euler(euler):
 
 
 def create_transform(translation=None, rotation=None):
-    pose = Isometry3.Identity()
-    if translation is not None:
-        pose.set_translation(translation)
-    if rotation is not None:
-        pose.set_rotation(matrix_from_euler(rotation))
-    return pose
+    if rotation and translation:
+        return RigidTransform(RollPitchYaw(rotation), translation)
+    elif rotation:
+        return RigidTransform(RollPitchYaw(rotation))
+    elif translation:
+        return RigidTransform(translation)
+    else:
+        return RigidTransform()
+    # pose = Isometry3.Identity()
+    # if translation is not None:
+    #     pose.set_translation(translation)
+    # if rotation is not None:
+    #     pose.set_rotation(matrix_from_euler(rotation))
+    # return pose
 
 
 ##################################################
@@ -132,22 +140,22 @@ def get_model_names(mbp):
 
 
 def get_bodies(mbp):
-    return [mbp.tree().get_body(BodyIndex(i)) for i in range(mbp.num_bodies())]
+    return [mbp.get_body(BodyIndex(i)) for i in range(mbp.num_bodies())]
 
 
 def get_joints(mbp):
-    return [mbp.tree().get_joint(JointIndex(i)) for i in range(mbp.num_joints())]
+    return [mbp.get_joint(JointIndex(i)) for i in range(mbp.num_joints())]
 
 
 def get_joint_actuators(mbp):
     return [
-        mbp.tree().get_joint_actuator(JointActuatorIndex(i))
+        mbp.get_joint_actuator(JointActuatorIndex(i))
         for i in range(mbp.num_actuators())
     ]
 
 
 def get_frames(mbp):
-    return [mbp.tree().get_frame(FrameIndex(i)) for i in range(mbp.tree().num_frames())]
+    return [mbp.get_frame(FrameIndex(i)) for i in range(mbp.tree().num_frames())]
 
 
 def get_model_bodies(mbp, model_index):
@@ -371,14 +379,17 @@ def dump_models(mbp):
 
 
 def weld_to_world(mbp, model_index, world_pose):
-    mbp.AddJoint(
-        WeldJoint(
-            name="weld_to_world",
-            parent_frame_P=mbp.world_body().body_frame(),
-            child_frame_C=get_base_body(mbp, model_index).body_frame(),
-            X_PC=world_pose,
-        )
+    mbp.WeldFrames(
+        mbp.world_frame(), get_base_body(mbp, model_index).body_frame(), world_pose
     )
+    # mbp.AddJoint(
+    #     WeldJoint(
+    #         name="weld_to_world",
+    #         parent_frame_P=mbp.world_body().body_frame(),
+    #         child_frame_C=get_base_body(mbp, model_index).body_frame(),
+    #         X_PC=world_pose,
+    #     )
+    # )
 
 
 # def fix_input_ports(mbp, context):

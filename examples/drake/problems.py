@@ -8,7 +8,9 @@ from pydrake.examples.manipulation_station import (
     IiwaCollisionModel,
 )
 from pydrake.geometry import SceneGraph
+from pydrake.multibody.parsing import Parser
 from pydrake.multibody.plant import MultibodyPlant
+from pydrake.multibody.tree import ModelInstanceIndex
 
 from examples.drake.systems import build_manipulation_station, build_diagram
 from examples.drake.iiwa_utils import (
@@ -69,6 +71,18 @@ BROCCOLI_PATH = os.path.join(MODELS_DIR, "broccoli.sdf")
 WALL_PATH = os.path.join(MODELS_DIR, "wall.sdf")
 
 ##################################################
+
+
+def AddModelFromSdfFile(
+    file_name: str, model_name: str, plant: MultibodyPlant, scene_graph: SceneGraph
+) -> ModelInstanceIndex:
+    # willshen@: I added this
+    # TODO: figure out what the model_name is used for
+    parser = Parser(plant)
+    index = parser.AddModelFromFile(file_name, model_name)
+    print(f"Added {model_name} from {file_name}. ModelInstanceIndex = {index}")
+    return index
+
 
 # BodyIndex: Type used to identify bodies by index in a multibody tree system.
 # ModelInstanceIndex: Type used to identify model instances by index within a multibody tree system.
@@ -336,7 +350,7 @@ def load_manipulation(
             translation=[cupboard_x, 0, cupboard_z], rotation=[0, 0, np.pi]
         ),
     )
-    plant.Finalize(scene_graph)
+    plant.Finalize()
 
     shelves = [
         "bottom",

@@ -3,28 +3,37 @@ import math
 import numpy as np
 from itertools import count
 
+from pydrake.math import RigidTransform, RollPitchYaw
 from pydrake.multibody.tree import WeldJoint
 
 from examples.drake.utils import (
     create_transform,
     get_model_bodies,
     set_joint_positions,
-    get_movable_joints,
+    get_movable_joints, get_frames,
 )
 
 
 def weld_gripper(mbp, robot_index, gripper_index):
     X_EeGripper = create_transform([0, 0, 0.081], [np.pi / 2, 0, np.pi / 2])
-    robot_body = get_model_bodies(mbp, robot_index)[-1]
-    gripper_body = get_model_bodies(mbp, gripper_index)[0]
-    mbp.AddJoint(
-        WeldJoint(
-            name="weld_gripper_to_robot_ee",
-            parent_frame_P=robot_body.body_frame(),
-            child_frame_C=gripper_body.body_frame(),
-            X_PC=X_EeGripper,
-        )
+    # robot_body = get_model_bodies(mbp, robot_index)[-1]
+    # gripper_body = get_model_bodies(mbp, gripper_index)[0]
+    mbp.WeldFrames(
+        mbp.GetFrameByName("iiwa_link_7", robot_index),
+        mbp.GetFrameByName("body", gripper_index),
+        X_EeGripper
     )
+    # mbp.AddJoint(
+    #     name="weld_gripper_to_robot_ee",
+    #     parent=robot_body,
+    #     child=gripper_body,
+    #     # WeldJoint(
+    #     #     name="weld_gripper_to_robot_ee",
+    #     #     parent_frame_P=robot_body.body_frame(),
+    #     #     child_frame_C=gripper_body.body_frame(),
+    #     #     X_PC=X_EeGripper,
+    #     # )
+    # )
 
 
 ##################################################

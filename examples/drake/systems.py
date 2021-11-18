@@ -157,10 +157,11 @@ def build_diagram(mbp, scene_graph, robot, gripper, meshcat=False, controllers=F
     builder.AddSystem(mbp)
 
     # Connect scene_graph to MBP for collision detection.
-    builder.Connect(
-        mbp.get_geometry_poses_output_port(),
-        scene_graph.get_source_pose_port(mbp.get_source_id()),
-    )
+    # FIXME: below line doesn't work
+    # builder.Connect(
+    #     mbp.get_geometry_poses_output_port(),
+    #     scene_graph.get_source_pose_port(mbp.get_source_id()),
+    # )
     builder.Connect(
         scene_graph.get_query_output_port(), mbp.get_geometry_query_input_port()
     )

@@ -3,6 +3,9 @@
 Trying to describe what the files do. The whole integration relied on Python2 
 and a very old version of Drake which I am trying to fix. 
 
+I spent a good amount of time trying to make this compatible with current Drake but there
+is just too many bits to be changed. 
+
 - `manipulation_station`
 - `models`
 - `debug`
