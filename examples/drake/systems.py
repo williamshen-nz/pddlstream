@@ -3,11 +3,11 @@ from pydrake.lcm import (
     DrakeLcm,
 )  # Required else "ConnectDrakeVisualizer(): incompatible function arguments."
 from pydrake.systems.framework import DiagramBuilder
+from pydrake.systems.meshcat_visualizer import MeshcatVisualizer
 from pydrake.systems.primitives import SignalLogger, Demultiplexer, LogOutput
 
 
 def build_manipulation_station(station):
-    from underactuated.meshcat_visualizer import MeshcatVisualizer
     from .manipulation_station.manipulation_station_plan_runner import (
         ManipStationPlanRunner,
     )
@@ -91,9 +91,8 @@ def build_manipulation_station(station):
 def add_meshcat_visualizer(scene_graph, builder):
     # https://github.com/rdeits/meshcat-python
     # https://github.com/RussTedrake/underactuated/blob/master/src/underactuated/meshcat_visualizer.py
-    from underactuated.meshcat_visualizer import MeshcatVisualizer
 
-    viz = MeshcatVisualizer(scene_graph, draw_timestep=0.033333)
+    viz = MeshcatVisualizer(scene_graph, draw_period=0.033333)
     builder.AddSystem(viz)
     builder.Connect(scene_graph.get_pose_bundle_output_port(), viz.get_input_port(0))
     viz.load()
