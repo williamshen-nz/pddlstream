@@ -60,8 +60,10 @@ STREAM_PDDL = """
 
 COST_CONSTANT = 1
 
+
 def harmonic(x):
-    return 1./(x + 1)
+    return 1.0 / (x + 1)
+
 
 def cost_fn(x):
     cost = COST_CONSTANT
@@ -71,31 +73,37 @@ def cost_fn(x):
     # input()
     return cost
 
+
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    print('Arguments:', args)
+    print("Arguments:", args)
 
     stream_map = {
-        'sample-control': from_gen(Output(i) for i in inf_generator()),
+        "sample-control": from_gen(Output(i) for i in inf_generator()),
         #'Cost': lambda x: COST_CONSTANT + harmonic(x),
-        'Cost': cost_fn,
-        'Sum': lambda *xs: sum(cost_fn(x) for x in xs),
+        "Cost": cost_fn,
+        "Sum": lambda *xs: sum(cost_fn(x) for x in xs),
     }
     stream_info = {
-        'sample-control': StreamInfo(opt_gen_fn=None),
+        "sample-control": StreamInfo(opt_gen_fn=None),
         #'Cost': FunctionInfo(opt_fn=lambda x: COST_CONSTANT),
-        'Cost': FunctionInfo(opt_fn=cost_fn),
+        "Cost": FunctionInfo(opt_fn=cost_fn),
     }
 
-    stream_map, stream_info = add_opt_function(name='Cost', base_fn=harmonic,
-                                               stream_map=stream_map, stream_info=stream_info,
-                                               constant=COST_CONSTANT, coefficient=1.)
+    stream_map, stream_info = add_opt_function(
+        name="Cost",
+        base_fn=harmonic,
+        stream_map=stream_map,
+        stream_info=stream_info,
+        constant=COST_CONSTANT,
+        coefficient=1.0,
+    )
     # TODO: cost fn that takes in a list of terms and sums them
 
     init = []
     goal = And(
-        ('Goal',),
+        ("Goal",),
     )
 
     # TODO: parse multiple additive cost functions
@@ -103,14 +111,24 @@ def main():
     # TODO: store the cost procedure instead of just the function head
     # TODO: don't instantiate cost streams until the grounding actions
     constant_map = {}
-    problem = PDDLProblem(DOMAIN_PDDL, constant_map, STREAM_PDDL, stream_map, init, goal)
+    problem = PDDLProblem(
+        DOMAIN_PDDL, constant_map, STREAM_PDDL, stream_map, init, goal
+    )
 
     with Profiler():
-        solution = solve(problem, stream_info=stream_info, algorithm=args.algorithm, unit_costs=args.unit, max_time=1,
-                         #success_cost=0,
-                         success_cost=INF,
-                         planner='max-astar', debug=False)
+        solution = solve(
+            problem,
+            stream_info=stream_info,
+            algorithm=args.algorithm,
+            unit_costs=args.unit,
+            max_time=1,
+            # success_cost=0,
+            success_cost=INF,
+            planner="max-astar",
+            debug=False,
+        )
     print_solution(solution)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

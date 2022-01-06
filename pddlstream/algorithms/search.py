@@ -4,7 +4,10 @@ from copy import deepcopy
 from time import time
 
 from pddlstream.algorithms.downward import run_search, TEMP_DIR, write_pddl
-from pddlstream.algorithms.instantiate_task import write_sas_task, translate_and_write_pddl
+from pddlstream.algorithms.instantiate_task import (
+    write_sas_task,
+    translate_and_write_pddl,
+)
 from pddlstream.utils import INF, Verbose, safe_rm_dir, elapsed_time
 
 
@@ -16,39 +19,52 @@ from pddlstream.utils import INF, Verbose, safe_rm_dir, elapsed_time
 # TODO: recursive application of these
 # TODO: write the domain and problem PDDL files that are used for debugging purposes
 
-def solve_from_task(sas_task, temp_dir=TEMP_DIR, clean=False, debug=False, hierarchy=[], **search_args):
+
+def solve_from_task(
+    sas_task, temp_dir=TEMP_DIR, clean=False, debug=False, hierarchy=[], **search_args
+):
     # TODO: can solve using another planner and then still translate using FastDownward
     # Can apply plan constraints (skeleton constraints) here as well
     start_time = time()
     with Verbose(debug):
-        print('\n' + 50*'-' + '\n')
+        print("\n" + 50 * "-" + "\n")
         write_sas_task(sas_task, temp_dir)
         solution = run_search(temp_dir, debug=True, **search_args)
         if clean:
             safe_rm_dir(temp_dir)
-        print('Total runtime: {:.3f}'.format(elapsed_time(start_time)))
-    #for axiom in sas_task.axioms:
+        print("Total runtime: {:.3f}".format(elapsed_time(start_time)))
+    # for axiom in sas_task.axioms:
     #    # TODO: return the set of axioms here as well
     #    var, value = axiom.effect
     #    print(sas_task.variables.value_names[var])
     #    axiom.dump()
     return solution
 
-def solve_from_pddl(domain_pddl, problem_pddl, temp_dir=TEMP_DIR, clean=False, debug=False, **search_kwargs):
+
+def solve_from_pddl(
+    domain_pddl,
+    problem_pddl,
+    temp_dir=TEMP_DIR,
+    clean=False,
+    debug=False,
+    **search_kwargs
+):
     # TODO: combine with solve_from_task
-    #return solve_tfd(domain_pddl, problem_pddl)
+    # return solve_tfd(domain_pddl, problem_pddl)
     start_time = time()
     with Verbose(debug):
         write_pddl(domain_pddl, problem_pddl, temp_dir)
-        #run_translate(temp_dir, verbose)
+        # run_translate(temp_dir, verbose)
         translate_and_write_pddl(domain_pddl, problem_pddl, temp_dir, debug)
         solution = run_search(temp_dir, debug=debug, **search_kwargs)
         if clean:
             safe_rm_dir(temp_dir)
-        print('Total runtime: {:.3f}'.format(elapsed_time(start_time)))
+        print("Total runtime: {:.3f}".format(elapsed_time(start_time)))
     return solution
 
+
 ##################################################
+
 
 def apply_sas_operator(init, op):
     for var, pre, post, cond in op.pre_post:
@@ -58,19 +74,22 @@ def apply_sas_operator(init, op):
 
 
 def name_from_action(action, args):
-    return '({})'.format(' '.join((action,) + args))
+    return "({})".format(" ".join((action,) + args))
+
 
 def parse_sas_plan(sas_task, plan):
-    op_from_name = {op.name: op for op in sas_task.operators} # No need to keep repeats
+    op_from_name = {op.name: op for op in sas_task.operators}  # No need to keep repeats
     sas_plan = []
     for action, args in plan:
         name = name_from_action(action, args)
         sas_plan.append(op_from_name[name])
     return sas_plan
 
+
 ##################################################
 
-SERIALIZE = 'serialize'
+SERIALIZE = "serialize"
+
 
 def plan_subgoals(sas_task, subgoal_plan, temp_dir, **kwargs):
     full_plan = []
@@ -88,20 +107,26 @@ def plan_subgoals(sas_task, subgoal_plan, temp_dir, **kwargs):
     return full_plan, full_cost
 
 
-def serialized_solve_from_task(sas_task, temp_dir=TEMP_DIR, clean=False, debug=False, hierarchy=[], **kwargs):
+def serialized_solve_from_task(
+    sas_task, temp_dir=TEMP_DIR, clean=False, debug=False, hierarchy=[], **kwargs
+):
     # TODO: specify goal grouping / group by predicate & objects
     # TODO: version that solves for all disjuctive subgoals at once
     start_time = time()
     with Verbose(debug):
-        print('\n' + 50*'-' + '\n')
-        subgoal_plan = [sas_task.goal.pairs[:i+1] for i in range(len(sas_task.goal.pairs))]
+        print("\n" + 50 * "-" + "\n")
+        subgoal_plan = [
+            sas_task.goal.pairs[: i + 1] for i in range(len(sas_task.goal.pairs))
+        ]
         plan, cost = plan_subgoals(sas_task, subgoal_plan, temp_dir, **kwargs)
         if clean:
             safe_rm_dir(temp_dir)
-        print('Total runtime: {:.3f}'.format(elapsed_time(start_time)))
+        print("Total runtime: {:.3f}".format(elapsed_time(start_time)))
     return plan, cost
 
+
 ##################################################
+
 
 class ABSTRIPSLayer(object):
     def __init__(self, pos_pre=[], neg_pre=[], pos_eff=[], neg_eff=[], horizon=INF):
@@ -109,18 +134,20 @@ class ABSTRIPSLayer(object):
         self.neg_pre = neg_pre
         self.pos_eff = pos_eff
         self.neg_eff = neg_eff
-        self.horizon = horizon # TODO: cost units instead?
+        self.horizon = horizon  # TODO: cost units instead?
         assert 1 <= self.horizon
         if self.pos_eff:
             raise NotImplementedError()
         if self.neg_eff:
             raise NotImplementedError()
 
+
 ##################################################
 
+
 def prune_hierarchy_pre_eff(sas_task, layers):
-    positive_template = 'Atom {}('
-    negated_template = 'NegatedAtom {}('
+    positive_template = "Atom {}("
+    negated_template = "NegatedAtom {}("
     pruned_pre = set()  # TODO: effects
     for layer in layers:
         pruned_pre.update(positive_template.format(p.lower()) for p in layer.pos_pre)
@@ -148,7 +175,8 @@ def add_subgoals(sas_task, subgoal_plan):
     sas_task.variables.ranges.append(subgoal_range)
     sas_task.variables.axiom_layers.append(-1)
     sas_task.variables.value_names.append(
-        ['subgoal{}'.format(i) for i in range(subgoal_range)])
+        ["subgoal{}".format(i) for i in range(subgoal_range)]
+    )
     sas_task.init.values.append(0)
     sas_task.goal.pairs.append((subgoal_var, subgoal_range - 1))
 
@@ -168,22 +196,30 @@ def add_subgoals(sas_task, subgoal_plan):
     return subgoal_var
 
 
-def abstrips_solve_from_task(sas_task, temp_dir=TEMP_DIR, clean=False, debug=False, hierarchy=[], **kwargs):
+def abstrips_solve_from_task(
+    sas_task, temp_dir=TEMP_DIR, clean=False, debug=False, hierarchy=[], **kwargs
+):
     # Like partial order planning in terms of precondition order
     # TODO: add achieve subgoal actions
     # TODO: most generic would be a heuristic on each state
     if hierarchy == SERIALIZE:
-        return serialized_solve_from_task(sas_task, temp_dir=temp_dir, clean=clean, debug=debug, **kwargs)
+        return serialized_solve_from_task(
+            sas_task, temp_dir=temp_dir, clean=clean, debug=debug, **kwargs
+        )
     if not hierarchy:
-        return solve_from_task(sas_task, temp_dir=temp_dir, clean=clean, debug=debug, **kwargs)
+        return solve_from_task(
+            sas_task, temp_dir=temp_dir, clean=clean, debug=debug, **kwargs
+        )
     start_time = time()
     plan, cost = None, INF
     with Verbose(debug):
-        print('\n' + 50*'-' + '\n')
+        print("\n" + 50 * "-" + "\n")
         last_plan = []
-        for level in range(len(hierarchy)+1):
+        for level in range(len(hierarchy) + 1):
             local_sas_task = deepcopy(sas_task)
-            prune_hierarchy_pre_eff(local_sas_task, hierarchy[level:]) # TODO: break if no pruned
+            prune_hierarchy_pre_eff(
+                local_sas_task, hierarchy[level:]
+            )  # TODO: break if no pruned
             add_subgoals(local_sas_task, last_plan)
             write_sas_task(local_sas_task, temp_dir)
             plan, cost = run_search(temp_dir, debug=True, **kwargs)
@@ -193,8 +229,9 @@ def abstrips_solve_from_task(sas_task, temp_dir=TEMP_DIR, clean=False, debug=Fal
             last_plan = [name_from_action(action, args) for action, args in plan]
         if clean:
             safe_rm_dir(temp_dir)
-        print('Total runtime: {:.3f}'.format(elapsed_time(start_time)))
+        print("Total runtime: {:.3f}".format(elapsed_time(start_time)))
     return plan, cost
+
 
 ##################################################
 
@@ -202,28 +239,44 @@ def abstrips_solve_from_task(sas_task, temp_dir=TEMP_DIR, clean=False, debug=Fal
 # TODO: reconcile shared objects on each level
 # Each operator in the hierarchy is a legal "operator" that may need to be refined
 
-def abstrips_solve_from_task_sequential(sas_task, temp_dir=TEMP_DIR, clean=False, debug=False,
-                                        hierarchy=[], subgoal_horizon=1, **kwargs):
+
+def abstrips_solve_from_task_sequential(
+    sas_task,
+    temp_dir=TEMP_DIR,
+    clean=False,
+    debug=False,
+    hierarchy=[],
+    subgoal_horizon=1,
+    **kwargs
+):
     # TODO: version that plans for each goal individually
     # TODO: can reduce to goal serialization if binary flag for each subgoal
     if not hierarchy:
-        return solve_from_task(sas_task, temp_dir=temp_dir, clean=clean, debug=debug, **kwargs)
+        return solve_from_task(
+            sas_task, temp_dir=temp_dir, clean=clean, debug=debug, **kwargs
+        )
     start_time = time()
     plan, cost = None, INF
     with Verbose(debug):
         last_plan = None
         for level in range(len(hierarchy) + 1):
             local_sas_task = deepcopy(sas_task)
-            prune_hierarchy_pre_eff(local_sas_task, hierarchy[level:])  # TODO: break if no pruned
+            prune_hierarchy_pre_eff(
+                local_sas_task, hierarchy[level:]
+            )  # TODO: break if no pruned
             # The goal itself is effectively a subgoal
             # Handle this subgoal horizon
             subgoal_plan = [local_sas_task.goal.pairs[:]]
             # TODO: do I want to consider the "subgoal action" as a real action?
             if last_plan is not None:
                 subgoal_var = add_subgoals(local_sas_task, last_plan)
-                subgoal_plan = [[(subgoal_var, val)] for val in range(1,
-                    local_sas_task.variables.ranges[subgoal_var], subgoal_horizon)] + subgoal_plan
-                hierarchy_horizon = min(hierarchy[level-1].horizon, len(subgoal_plan))
+                subgoal_plan = [
+                    [(subgoal_var, val)]
+                    for val in range(
+                        1, local_sas_task.variables.ranges[subgoal_var], subgoal_horizon
+                    )
+                ] + subgoal_plan
+                hierarchy_horizon = min(hierarchy[level - 1].horizon, len(subgoal_plan))
                 subgoal_plan = subgoal_plan[:hierarchy_horizon]
             plan, cost = plan_subgoals(local_sas_task, subgoal_plan, temp_dir, **kwargs)
             if (level == len(hierarchy)) or (plan is None):
@@ -233,7 +286,7 @@ def abstrips_solve_from_task_sequential(sas_task, temp_dir=TEMP_DIR, clean=False
             last_plan = [name_from_action(action, args) for action, args in plan]
         if clean:
             safe_rm_dir(temp_dir)
-        print('Total runtime: {:.3f}'.format(elapsed_time(start_time)))
+        print("Total runtime: {:.3f}".format(elapsed_time(start_time)))
     # TODO: record which level of abstraction each operator is at when returning
     # TODO: return instantiated actions here rather than names (including pruned pre/eff)
     return plan, cost

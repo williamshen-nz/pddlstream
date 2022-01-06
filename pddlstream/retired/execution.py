@@ -8,7 +8,7 @@ class ActionInfo(object):
         """
         :param terminal: Indicates the action may require replanning after use
         """
-        self.terminal = terminal # TODO: infer from p_success?
+        self.terminal = terminal  # TODO: infer from p_success?
         if self.terminal:
             self.p_success, self.overhead = 1e-3, 0
         else:

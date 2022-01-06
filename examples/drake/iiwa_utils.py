@@ -10,7 +10,8 @@ from examples.drake.utils import (
     create_transform,
     get_model_bodies,
     set_joint_positions,
-    get_movable_joints, get_frames,
+    get_movable_joints,
+    get_frames,
 )
 
 
@@ -21,7 +22,7 @@ def weld_gripper(mbp, robot_index, gripper_index):
     mbp.WeldFrames(
         mbp.GetFrameByName("iiwa_link_7", robot_index),
         mbp.GetFrameByName("body", gripper_index),
-        X_EeGripper
+        X_EeGripper,
     )
     # mbp.AddJoint(
     #     name="weld_gripper_to_robot_ee",

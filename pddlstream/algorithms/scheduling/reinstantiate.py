@@ -6,32 +6,46 @@ from pddlstream.language.optimizer import UNSATISFIABLE
 import pddl
 import instantiate
 
+
 def instantiate_unsatisfiable(state, action, var_mapping, negative_from_name={}):
     precondition = []
     for effect in action.effects:
         if effect.literal.predicate == UNSATISFIABLE:
             # Condition must be false for plan to succeed
             conditions = set(get_conjunctive_parts(effect.condition))
-            negative = {literal for literal in conditions if literal.predicate in negative_from_name}
+            negative = {
+                literal
+                for literal in conditions
+                if literal.predicate in negative_from_name
+            }
             if not negative:
                 continue
             assert len(negative) == 1
             # TODO: handle the case where negative is not used (not (CFree ..))
             normal_conjunction = pddl.Conjunction(conditions - negative)
             # TODO: assumes that can instantiate with just predicate_to_atoms
-            normal_effect = pddl.Effect(effect.parameters, normal_conjunction, effect.literal)
+            normal_effect = pddl.Effect(
+                effect.parameters, normal_conjunction, effect.literal
+            )
             # TODO: avoid recomputing these
             objects_by_type = instantiate.get_objects_by_type([], [])
             predicate_to_atoms = instantiate.get_atoms_by_predicate(state)
             result = []
-            normal_effect.instantiate(var_mapping, state, {effect.literal},
-                                      objects_by_type, predicate_to_atoms, result)
+            normal_effect.instantiate(
+                var_mapping,
+                state,
+                {effect.literal},
+                objects_by_type,
+                predicate_to_atoms,
+                result,
+            )
             for _, _, _, mapping in result:
                 for literal in negative:
                     new_literal = literal.rename_variables(mapping).negate()
-                    assert (not new_literal.free_variables())
+                    assert not new_literal.free_variables()
                     precondition.append(new_literal)
     return precondition
+
 
 def reinstantiate_action(state, instance, negative_from_name={}):
     # Recomputes the instances with without any pruned preconditions
@@ -42,18 +56,24 @@ def reinstantiate_action(state, instance, negative_from_name={}):
     fluent_facts = MockSet()
     precondition = []
     try:
-        action.precondition.instantiate(var_mapping, init_facts, fluent_facts, precondition)
+        action.precondition.instantiate(
+            var_mapping, init_facts, fluent_facts, precondition
+        )
     except pddl.conditions.Impossible:
         return None
-    precondition = list(set(precondition)) + instantiate_unsatisfiable(state, action, var_mapping, negative_from_name)
+    precondition = list(set(precondition)) + instantiate_unsatisfiable(
+        state, action, var_mapping, negative_from_name
+    )
 
     effects = []
-    effect_from_literal = {literal: (cond, effect, effect_mapping)
-                           for cond, literal, effect, effect_mapping in instance.effect_mappings}
+    effect_from_literal = {
+        literal: (cond, effect, effect_mapping)
+        for cond, literal, effect, effect_mapping in instance.effect_mappings
+    }
     for literal in instance.applied_effects:
         cond, effect, effect_mapping = effect_from_literal[literal]
-        if effect is None: # Stream effect
-            #effects.append((cond, literal, cond, effect))
+        if effect is None:  # Stream effect
+            # effects.append((cond, literal, cond, effect))
             continue
         else:
             effect._instantiate(effect_mapping, init_facts, fluent_facts, effects)
@@ -62,7 +82,9 @@ def reinstantiate_action(state, instance, negative_from_name={}):
     for cond, effect, e, m in effects:
         precondition.extend(cond)
         new_effects.append(([], effect, e, m))
-    return pddl.PropositionalAction(instance.name, precondition, new_effects, instance.cost, action, var_mapping)
+    return pddl.PropositionalAction(
+        instance.name, precondition, new_effects, instance.cost, action, var_mapping
+    )
 
 
 def reinstantiate_action_instances(task, old_instances, **kwargs):
@@ -72,21 +94,25 @@ def reinstantiate_action_instances(task, old_instances, **kwargs):
     for old_instance in old_instances:
         # TODO: better way of instantiating conditional effects (when not fluent)
         new_instance = reinstantiate_action(state, old_instance, **kwargs)
-        assert (new_instance is not None)
+        assert new_instance is not None
         new_instances.append(new_instance)
         apply_action(state, new_instance)
-    new_instances.append(get_goal_instance(task.goal)) # TODO: move this?
+    new_instances.append(get_goal_instance(task.goal))  # TODO: move this?
     return new_instances
 
+
 ##################################################
+
 
 def reinstantiate_axiom(old_instance, init_facts=set(), fluent_facts=MockSet()):
     axiom = old_instance.axiom
     var_mapping = old_instance.var_mapping
     new_instance = axiom.instantiate(var_mapping, init_facts, fluent_facts)
-    assert (new_instance is not None)
+    assert new_instance is not None
     return new_instance
 
 
 def reinstantiate_axiom_instances(old_instances, **kwargs):
-    return [reinstantiate_axiom(old_instance, **kwargs) for old_instance in old_instances]
+    return [
+        reinstantiate_axiom(old_instance, **kwargs) for old_instance in old_instances
+    ]

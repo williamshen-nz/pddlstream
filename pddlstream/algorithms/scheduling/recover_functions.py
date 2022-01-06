@@ -7,6 +7,7 @@ from pddlstream.language.conversion import obj_from_pddl
 
 def extract_function_result(results_from_head, action, pddl_args):
     import pddl
+
     if action.cost is None:
         return None
     # TODO: retrieve constant action costs
@@ -15,8 +16,9 @@ def extract_function_result(results_from_head, action, pddl_args):
     if not isinstance(expression, pddl.PrimitiveNumericExpression):
         return None
     var_mapping = {p.name: a for p, a in zip(action.parameters, pddl_args)}
-    obj_args = tuple(obj_from_pddl(var_mapping[p] if is_parameter(p) else p)
-                     for p in expression.args)
+    obj_args = tuple(
+        obj_from_pddl(var_mapping[p] if is_parameter(p) else p) for p in expression.args
+    )
     head = Head(expression.symbol, obj_args)
     [result] = results_from_head[head]
     if result is None:
@@ -39,5 +41,5 @@ def compute_function_plan(opt_evaluations, action_plan):
             step_from_function[result] = min(step, step_from_function.get(result, INF))
             if not result.is_deferrable():
                 step_from_function[result] = 0
-            #function_from_instance[action_instance] = result
+            # function_from_instance[action_instance] = result
     return step_from_function

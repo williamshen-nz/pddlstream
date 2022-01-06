@@ -1,6 +1,13 @@
 from examples.pybullet.utils.pybullet_tools.pr2_primitives import iterate_approach_path
-from examples.pybullet.utils.pybullet_tools.utils import pairwise_collision, get_distance, multiply, set_pose, \
-    interpolate_poses, invert, wait_if_gui
+from examples.pybullet.utils.pybullet_tools.utils import (
+    pairwise_collision,
+    get_distance,
+    multiply,
+    set_pose,
+    interpolate_poses,
+    invert,
+    wait_if_gui,
+)
 
 BASE_CONSTANT = 1
 BASE_VELOCITY = 0.25
@@ -15,7 +22,9 @@ def move_cost_fn(t):
     distance = t.distance(distance_fn=lambda q1, q2: get_distance(q1[:2], q2[:2]))
     return BASE_CONSTANT + distance / BASE_VELOCITY
 
+
 #######################################################
+
 
 def get_cfree_pose_pose_test(collisions=True, **kwargs):
     def test(b1, p1, b2, p2):
@@ -23,7 +32,8 @@ def get_cfree_pose_pose_test(collisions=True, **kwargs):
             return True
         p1.assign()
         p2.assign()
-        return not pairwise_collision(b1, b2, **kwargs) #, max_distance=0.001)
+        return not pairwise_collision(b1, b2, **kwargs)  # , max_distance=0.001)
+
     return test
 
 
@@ -39,13 +49,15 @@ def get_cfree_obj_approach_pose_test(collisions=True):
             if pairwise_collision(b1, b2):
                 return False
         return True
+
     return test
 
 
 def get_cfree_approach_pose_test(problem, collisions=True):
     # TODO: apply this before inverse kinematics as well
-    arm = 'left'
+    arm = "left"
     gripper = problem.get_gripper()
+
     def test(b1, p1, g1, b2, p2):
         if not collisions or (b1 == b2):
             return True
@@ -54,6 +66,7 @@ def get_cfree_approach_pose_test(problem, collisions=True):
             if pairwise_collision(b1, b2) or pairwise_collision(gripper, b2):
                 return False
         return True
+
     return test
 
 
@@ -70,12 +83,13 @@ def get_cfree_traj_pose_test(robot, collisions=True):
             state.assign()
             for b1 in state.attachments:
                 if pairwise_collision(b1, b2):
-                    #wait_for_user()
+                    # wait_for_user()
                     return False
             if pairwise_collision(robot, b2):
                 return False
         # TODO: just check collisions with moving links
         return True
+
     return test
 
 
@@ -97,4 +111,5 @@ def get_cfree_traj_grasp_pose_test(problem, collisions=True):
             if pairwise_collision(problem.robot, b2):
                 return False
         return True
+
     return test

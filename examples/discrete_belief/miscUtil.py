@@ -22,7 +22,7 @@ class Hashable:
         return self.descValue
 
     def __eq__(self, other):
-        return hasattr(other, 'desc') and self._desc() == other._desc()
+        return hasattr(other, "desc") and self._desc() == other._desc()
 
     def __ne__(self, other):
         return not self == other
@@ -60,8 +60,12 @@ class SetWithEquality:
 
 
 def timeString():
-    return str(datetime.datetime.now()).replace(' ', '').replace(':', '_'). \
-        replace('.', '_')
+    return (
+        str(datetime.datetime.now())
+        .replace(" ", "")
+        .replace(":", "_")
+        .replace(".", "_")
+    )
 
 
 class SymbolGenerator:
@@ -74,12 +78,12 @@ class SymbolGenerator:
     def __init__(self):
         self.count = 0
 
-    def gensym(self, prefix='i', zeroPadded=False):
+    def gensym(self, prefix="i", zeroPadded=False):
         self.count += 1
         if zeroPadded:
-            return (prefix + '_%08i') % self.count
+            return (prefix + "_%08i") % self.count
         else:
-            return prefix + '_' + str(self.count)
+            return prefix + "_" + str(self.count)
 
 
 gensym = SymbolGenerator().gensym
@@ -188,24 +192,30 @@ def roundDownStr(n, dig):
 def prettyString(struct, eq=True):
     dig = eqDig if eq else nonEqDig
     if type(struct) == list:
-        return '[' + ', '.join(prettyString(item, eq) for item in struct) + ']'
+        return "[" + ", ".join(prettyString(item, eq) for item in struct) + "]"
     elif type(struct) == tuple:
-        return '(' + ', '.join(prettyString(item, eq) for item in struct) + ')'
+        return "(" + ", ".join(prettyString(item, eq) for item in struct) + ")"
     elif type(struct) == dict:
-        return '{' + ', '.join(str(item) + ':' + prettyString(struct[item], eq) \
-                               for item in sorted(struct.keys())) + '}'
+        return (
+            "{"
+            + ", ".join(
+                str(item) + ":" + prettyString(struct[item], eq)
+                for item in sorted(struct.keys())
+            )
+            + "}"
+        )
     elif isinstance(struct, np.ndarray):
         # Could make this prettier...
         return prettyString(struct.tolist())
-    elif type(struct) != int and type(struct) != bool and \
-            hasattr(struct, '__float__'):
+    elif type(struct) != int and type(struct) != bool and hasattr(struct, "__float__"):
         struct = round(struct, dig)
-        if struct == 0: struct = 0  # catch stupid -0.0
+        if struct == 0:
+            struct = 0  # catch stupid -0.0
         # return ("%5.8f" % struct) if eq else ("%5.3f" % struct)
         return ("%5." + str(dig) + "f") % struct
-    elif hasattr(struct, 'getStr'):
+    elif hasattr(struct, "getStr"):
         return struct.getStr(eq)
-    elif hasattr(struct, 'prettyString'):
+    elif hasattr(struct, "prettyString"):
         return struct.prettyString(eq)
     else:
         return str(struct)
@@ -325,10 +335,10 @@ def update(x, **entries):
 def combineBindings(a, b):
     if a == False or b == False:
         return False
-    return dict([(k, applyBindings(v, b)) for (k, v) in \
-                 a.iteritems()] + \
-                [(k, applyBindings(v, a)) for (k, v) in \
-                 b.iteritems()])
+    return dict(
+        [(k, applyBindings(v, b)) for (k, v) in a.iteritems()]
+        + [(k, applyBindings(v, a)) for (k, v) in b.iteritems()]
+    )
 
 
 # Doesn't extend bindings if there are bindings in s
@@ -350,7 +360,7 @@ def applyBindings1(s, bindings):
         return set([applyBindings1(thing, bindings) for thing in s])
     elif tps == list:
         return [applyBindings1(thing, bindings) for thing in s]
-    elif hasattr(s, 'applyBindings'):
+    elif hasattr(s, "applyBindings"):
         return s.applyBindings(bindings)
     else:
         return s
@@ -371,7 +381,7 @@ def customCopy(s):
         return set([customCopy(thing) for thing in s])
     elif tps == list:
         return [customCopy(thing) for thing in s]
-    elif hasattr(s, 'copy'):
+    elif hasattr(s, "copy"):
         return s.copy()
     else:
         return copy.copy(s)
@@ -384,11 +394,11 @@ def isVar(thing):
 
 
 def isConstraintVar(thing):
-    return type(thing) == str and thing[0] == '?'
+    return type(thing) == str and thing[0] == "?"
 
 
 def makeConstraintVar(v):
-    return gensym('?' + v)
+    return gensym("?" + v)
 
 
 def makeVar(v):
@@ -399,7 +409,7 @@ def isAnyVar(thing):
     # This gets called millions of times, so it's worth making more efficient - TLP
     # return isVar(thing) or isConstraintVar(thing)
     if isinstance(thing, str):
-        return thing[0] == '?' or (thing[0].isalpha() and thing[0].isupper())
+        return thing[0] == "?" or (thing[0].isalpha() and thing[0].isupper())
 
 
 def lookup(thing, bindings):
@@ -410,7 +420,7 @@ def lookup(thing, bindings):
 
 
 def isGround(thing):
-    if hasattr(thing, 'isGround'):
+    if hasattr(thing, "isGround"):
         return thing.isGround()
     elif isStruct(thing):
         return all(isGround(x) for x in thing)
@@ -436,7 +446,7 @@ def floatRange(minVal, maxVal, numSteps):
     return vals
 
 
-'''
+"""
 # Assumes funTable is monotonic
 def inverseTableLookup(pQuery, table):
     for i in range(len(table)):
@@ -449,46 +459,53 @@ def inverseTableLookup(pQuery, table):
             rate = (r - rp) / (p - pp)
             return pp + (pQuery - pp) * rate
     return table[-1][p]
-'''
+"""
 
 
 # Variable name manipulation
 # names are of the form: pred(obj)_numbers
 
+
 def varNameToPred(vname):
-    if vname[0] == '?': vname = vname[1:]
-    name = vname.rstrip('_1234567890')
-    if '(' in name:
-        return name[:name.index('(')]
+    if vname[0] == "?":
+        vname = vname[1:]
+    name = vname.rstrip("_1234567890")
+    if "(" in name:
+        return name[: name.index("(")]
     else:
         return name
 
 
 def varNameToObj(vname):
-    if '(' in vname:
-        return vname[vname.index('(') + 1: vname.index(')')]
+    if "(" in vname:
+        return vname[vname.index("(") + 1 : vname.index(")")]
 
 
 # Bindings == None means we've failed
 # if renaming is True, then only let variables match variables
-def matchLists(s1, s2, bindings='empty', starIsWild=True, renaming=False):
-    if bindings == 'empty': bindings = {}
+def matchLists(s1, s2, bindings="empty", starIsWild=True, renaming=False):
+    if bindings == "empty":
+        bindings = {}
     if bindings is None or len(s1) != len(s2):
         return None
     if bindings != {}:
         bindings = copy.copy(bindings)
     for (a1, a2) in zip(s1, s2):
-        bindings = matchTerms(a1, a2, bindings, starIsWild=starIsWild,
-                              renaming=renaming)
-        if bindings is None: return bindings
+        bindings = matchTerms(
+            a1, a2, bindings, starIsWild=starIsWild, renaming=renaming
+        )
+        if bindings is None:
+            return bindings
     return bindings
 
 
 # Returns bindings, no side effect.  One-sided wrt '*': that is a
 # constant in t1 will match a * in t2, but not vv.
-def matchTerms(t1, t2, bindings='empty', starIsWild=True, renaming=False):
-    if bindings == 'empty': bindings = {}
-    if bindings is None: return None
+def matchTerms(t1, t2, bindings="empty", starIsWild=True, renaming=False):
+    if bindings == "empty":
+        bindings = {}
+    if bindings is None:
+        return None
     bt1 = applyBindings1(t1, bindings)
     bt2 = applyBindings1(t2, bindings)
     if bt1 == bt2 or t1 == t2:
@@ -497,9 +514,9 @@ def matchTerms(t1, t2, bindings='empty', starIsWild=True, renaming=False):
         bindings = extendBindings(bindings, bt1, t2)
     elif isVar(bt2) and not renaming:
         bindings = extendBindings(bindings, bt2, t1)
-    elif bt2 == '*' and starIsWild:
+    elif bt2 == "*" and starIsWild:
         pass
-    elif hasattr(bt1, 'matches') and hasattr(bt2, 'matches'):
+    elif hasattr(bt1, "matches") and hasattr(bt2, "matches"):
         # maybe not a great test...trying to see if they are both B fluents
         bindings = bt1.matches(bt2, bindings, rename=renaming)
     else:
@@ -529,8 +546,7 @@ def extendBindings(b, k, v):
 
 
 def goodBindings(b):
-    return type(b) == dict and \
-           all(var != val for (var, val) in b.iteritems())
+    return type(b) == dict and all(var != val for (var, val) in b.iteritems())
 
 
 def extractVars(struct):
@@ -553,7 +569,8 @@ def orderedUnion(s1, s2):
 # Return the largest element of dom that is less than v.
 # in two dimensions
 def floorInDomain2(v, dom):
-    if v is None: return None
+    if v is None:
+        return None
     # assumes dom is sorted
     for (i, vd) in enumerate(dom):
         if vd[0] > v[0] or vd[1] > v[1]:
@@ -572,7 +589,8 @@ def makeDiag(v):
 
 
 def undiag(m):
-    if m is None: return None
+    if m is None:
+        return None
     return tuple(np.diag(m))
 
 
@@ -600,8 +618,7 @@ def roundrobin(*iterables):
 
 # Returns list of lists
 def diagToSq(d):
-    return [[(d[i] if i == j else 0.0) \
-             for i in range(len(d))] for j in range(len(d))]
+    return [[(d[i] if i == j else 0.0) for i in range(len(d))] for j in range(len(d))]
 
 
 def detuple(t):

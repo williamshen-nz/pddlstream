@@ -78,63 +78,86 @@ STREAM_PDDL = None
 
 ##################################################
 
+
 def get_problem1(n_regions=0, n_cylinders=3, n_boxes=3):
     constant_map = {}
     stream_map = DEBUG
 
-    initial = 'initial'
-    shelfA = 'shelfA'
-    prepushA = 'prepushA'
-    shelfB = 'shelfB'
+    initial = "initial"
+    shelfA = "shelfA"
+    prepushA = "prepushA"
+    shelfB = "shelfB"
 
-    regions = [initial, shelfA, prepushA, shelfB] + \
-              ['region{}'.format(i) for i in range(n_regions)]
-    cylinders = ['cylinder{}'.format(i) for i in range(n_cylinders)]
-    boxes = ['box{}'.format(i) for i in range(n_boxes)]
+    regions = [initial, shelfA, prepushA, shelfB] + [
+        "region{}".format(i) for i in range(n_regions)
+    ]
+    cylinders = ["cylinder{}".format(i) for i in range(n_cylinders)]
+    boxes = ["box{}".format(i) for i in range(n_boxes)]
 
     init = [
-        ('HandEmpty',),
-        ('Prepush', prepushA, shelfA),
-        #('Stackable', cylinders[2], cylinders[1]),
+        ("HandEmpty",),
+        ("Prepush", prepushA, shelfA),
+        # ('Stackable', cylinders[2], cylinders[1]),
     ]
-    init += [('Region', region) for region in regions]
-    init += [('Cylinder', cylinder) for cylinder in cylinders]
-    init += [('Box', box) for box in boxes]
-    init.extend(flatten([('Movable', movable), ('On', movable, initial), ('Clear', movable)]
-                        for movable in (cylinders + boxes)))
-    init += [('Thing', thing) for thing in (regions + cylinders + boxes)]
+    init += [("Region", region) for region in regions]
+    init += [("Cylinder", cylinder) for cylinder in cylinders]
+    init += [("Box", box) for box in boxes]
+    init.extend(
+        flatten(
+            [("Movable", movable), ("On", movable, initial), ("Clear", movable)]
+            for movable in (cylinders + boxes)
+        )
+    )
+    init += [("Thing", thing) for thing in (regions + cylinders + boxes)]
 
     goal = And(
-        ('In', cylinders[0], shelfA),
-        ('On', cylinders[2], cylinders[1]),
+        ("In", cylinders[0], shelfA),
+        ("On", cylinders[2], cylinders[1]),
     )
 
     return PDDLProblem(DOMAIN_PDDL, constant_map, STREAM_PDDL, stream_map, init, goal)
 
+
 ##################################################
+
 
 def main():
     parser = create_parser()
-    parser.add_argument('-n', '--n_boxes', default=3, type=int, help='The number of boxes')
+    parser.add_argument(
+        "-n", "--n_boxes", default=3, type=int, help="The number of boxes"
+    )
     args = parser.parse_args()
-    print('Arguments:', args)
+    print("Arguments:", args)
 
     problem = get_problem1(n_boxes=args.n_boxes)
-    print('Init:', sorted(problem.init))
-    print('Goal:', problem.goal)
+    print("Init:", sorted(problem.init))
+    print("Goal:", problem.goal)
 
-    print(analyze_goal(problem, debug=True, use_actions=True, blocked_predicates=[
-        # TODO: make sure to use lowercase
-        'handempty',
-        'clear',
-        # These are conditions that you can always reachieve?
-    ]))
+    print(
+        analyze_goal(
+            problem,
+            debug=True,
+            use_actions=True,
+            blocked_predicates=[
+                # TODO: make sure to use lowercase
+                "handempty",
+                "clear",
+                # These are conditions that you can always reachieve?
+            ],
+        )
+    )
     print(SEPARATOR)
 
     with Profiler():
-        solution = solve(problem, algorithm=args.algorithm, unit_costs=args.unit,
-                         planner='ff-wastar1', debug=True)
+        solution = solve(
+            problem,
+            algorithm=args.algorithm,
+            unit_costs=args.unit,
+            planner="ff-wastar1",
+            debug=True,
+        )
     print_solution(solution)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

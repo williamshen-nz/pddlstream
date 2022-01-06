@@ -6,7 +6,12 @@ from heapq import heappush, heappop, heapreplace
 from operator import itemgetter
 
 from pddlstream.algorithms.common import is_instance_ready, EvaluationNode
-from pddlstream.algorithms.disabled import process_instance, update_bindings, update_cost, bind_action_plan
+from pddlstream.algorithms.disabled import (
+    process_instance,
+    update_bindings,
+    update_cost,
+    bind_action_plan,
+)
 from pddlstream.language.constants import is_plan, INFEASIBLE
 from pddlstream.language.conversion import evaluation_from_fact
 from pddlstream.utils import elapsed_time, HeapElement, safe_zip, get_mapping
@@ -16,10 +21,13 @@ from pddlstream.utils import elapsed_time, HeapElement, safe_zip, get_mapping
 # Consider a stream result DAG A -> C, B -> C
 # If A is already successfully sampled, don't want to resample A until B is sampled
 
+
 def puncture(sequence, index):
-    return sequence[:index] + sequence[index+1:]
+    return sequence[:index] + sequence[index + 1 :]
+
 
 ##################################################
+
 
 class Skeleton(object):
     def __init__(self, queue, stream_plan, action_plan, cost):
@@ -29,19 +37,25 @@ class Skeleton(object):
         self.stream_plan = stream_plan
         self.action_plan = action_plan
         self.cost = cost
-        self.root = Binding(self.queue, self,
-                            stream_indices=range(len(stream_plan)),
-                            stream_attempts=[0]*len(stream_plan),
-                            bound_results={},
-                            bindings={},
-                            cost=cost)
+        self.root = Binding(
+            self.queue,
+            self,
+            stream_indices=range(len(stream_plan)),
+            stream_attempts=[0] * len(stream_plan),
+            bound_results={},
+            bindings={},
+            cost=cost,
+        )
         self.best_binding = self.root
+
     def bind_stream_plan(self, mapping, indices=None):
         if indices is None:
             indices = range(len(self.stream_plan))
         return [self.stream_plan[index].remap_inputs(mapping) for index in indices]
-    #def __repr__(self):
+
+    # def __repr__(self):
     #    return repr(self.action_plan)
+
 
 ##################################################
 
@@ -49,12 +63,21 @@ class Skeleton(object):
 # TODO: delete a binding if a stream is exhausted
 # TODO: evaluate all stream instances in queue below a target effort
 
-Priority = namedtuple('Priority', ['attempted', 'effort'])
+Priority = namedtuple("Priority", ["attempted", "effort"])
+
 
 class Binding(object):
     # TODO: maintain a tree instead. Propagate the best subtree upwards
-    def __init__(self, queue, skeleton, stream_indices, stream_attempts,
-                 bound_results, bindings, cost):
+    def __init__(
+        self,
+        queue,
+        skeleton,
+        stream_indices,
+        stream_attempts,
+        bound_results,
+        bindings,
+        cost,
+    ):
         self.queue = queue
         self.skeleton = skeleton
         assert len(stream_indices) == len(stream_attempts)
@@ -64,45 +87,60 @@ class Binding(object):
         self.bindings = bindings
         self.cost = cost
         self.children = []
-        self.enumerated = False # What if result enumerated with zero calls?
+        self.enumerated = False  # What if result enumerated with zero calls?
         self._remaining_results = None
         # Maybe just reset the indices for anything that isn't applicable
         # n+1 sample represented
         # TODO: store partial orders
         # TODO: store applied results
         # TODO: the problem is that I'm not actually doing all combinations because I'm passing attempted
+
     @property
     def attempts_from_index(self):
         return get_mapping(self.stream_indices, self.stream_attempts)
+
     @property
     def remaining_results(self):
         if self._remaining_results is None:
-            self._remaining_results = self.skeleton.bind_stream_plan(self.bindings, self.stream_indices)
+            self._remaining_results = self.skeleton.bind_stream_plan(
+                self.bindings, self.stream_indices
+            )
         return self._remaining_results
+
     @property
     def action_plan(self):
         return bind_action_plan(self.skeleton.action_plan, self.bindings)
+
     @property
     def result(self):
         return self.remaining_results[0]
+
     @property
     def index(self):
         return self.stream_indices[0]
+
     @property
     def attempts(self):
         return self.stream_attempts[0]
+
     def is_bound(self):
         return not self.stream_indices
+
     def is_dominated(self):
         # TODO: what should I do if the cost=inf (from incremental/exhaustive)
-        return self.queue.store.has_solution() and (self.queue.store.best_cost <= self.cost)
+        return self.queue.store.has_solution() and (
+            self.queue.store.best_cost <= self.cost
+        )
+
     def is_enabled(self):
         return not (self.enumerated or self.is_dominated())
+
     def post_order(self):
         for child in self.children:
             for binding in child.post_order():
                 yield binding
         yield self
+
     def get_priority(self):
         # Infinite cost if skeleton is exhausted
         # Attempted is equivalent to whether any stream result is disabled
@@ -110,16 +148,23 @@ class Binding(object):
         attempted = num_attempts != 0
         # TODO: lexicographic tiebreaking using plan cost and other skeleton properties
         return Priority(attempted, (num_attempts, len(self.stream_attempts)))
+
     def get_element(self):
         return HeapElement(self.get_priority(), self)
+
     def get_key(self):
         # Each stream result is unique (affects hashing)
-        return self.skeleton, tuple(self.stream_indices), frozenset(self.bindings.items())
+        return (
+            self.skeleton,
+            tuple(self.stream_indices),
+            frozenset(self.bindings.items()),
+        )
+
     def _instantiate(self, index, new_result):
         if not new_result.is_successful():
-            return None # TODO: check if satisfies target certified
+            return None  # TODO: check if satisfies target certified
         opt_result = self.remaining_results[index]
-        #if not isinstance(new_result, StreamResult) or not new_result.output_objects:
+        # if not isinstance(new_result, StreamResult) or not new_result.output_objects:
         #    self.stream_indices = puncture(self.stream_indices, index)
         #    self.stream_attempts = puncture(self.stream_attempts, index)
         #    self.bound_results[self.stream_indices[index]] = new_result
@@ -130,26 +175,32 @@ class Binding(object):
         #    return self
         bound_results = self.bound_results.copy()
         bound_results[self.stream_indices[index]] = new_result
-        binding = Binding(self.queue, self.skeleton,
-                          puncture(self.stream_indices, index),
-                          puncture(self.stream_attempts, index),
-                          bound_results,
-                          update_bindings(self.bindings, opt_result, new_result),
-                          update_cost(self.cost, opt_result, new_result))
-        #if not isinstance(new_result, StreamResult) or not new_result.output_objects:
+        binding = Binding(
+            self.queue,
+            self.skeleton,
+            puncture(self.stream_indices, index),
+            puncture(self.stream_attempts, index),
+            bound_results,
+            update_bindings(self.bindings, opt_result, new_result),
+            update_cost(self.cost, opt_result, new_result),
+        )
+        # if not isinstance(new_result, StreamResult) or not new_result.output_objects:
         #    binding._remaining_results = puncture(self._remaining_results, index)
         if len(binding.stream_indices) < len(self.skeleton.best_binding.stream_indices):
             self.skeleton.best_binding = binding
         self.children.append(binding)
         self.queue.new_binding(binding)
-        #if not isinstance(new_result, StreamResult) or not new_result.output_objects:
+        # if not isinstance(new_result, StreamResult) or not new_result.output_objects:
         #    # The binding is dominated
         #    self.enumerated = True
         #    self.queue.update_enabled(self)
         return binding
+
     def update_instances(self):
         updated = False
-        for index, (opt_result, attempt) in enumerate(safe_zip(self.remaining_results, self.stream_attempts)):
+        for index, (opt_result, attempt) in enumerate(
+            safe_zip(self.remaining_results, self.stream_attempts)
+        ):
             if self.enumerated:
                 return updated
             if opt_result.instance.num_calls != attempt:
@@ -159,13 +210,17 @@ class Binding(object):
                 self.stream_attempts[index] = opt_result.instance.num_calls
                 self.enumerated |= opt_result.instance.enumerated
         return updated
+
     def __repr__(self):
-        #return '{}({})'.format(self.__class__.__name__, str_from_object(self.remaining_stream_plan))
-        #return '{}({})'.format(self.__class__.__name__, str_from_object(self.action_plan))
-        return '{}(skeleton={}, remaining={})'.format(
-            self.__class__.__name__, self.skeleton.index, self.stream_indices) #str_from_object(self.attempts_from_index))
+        # return '{}({})'.format(self.__class__.__name__, str_from_object(self.remaining_stream_plan))
+        # return '{}({})'.format(self.__class__.__name__, str_from_object(self.action_plan))
+        return "{}(skeleton={}, remaining={})".format(
+            self.__class__.__name__, self.skeleton.index, self.stream_indices
+        )  # str_from_object(self.attempts_from_index))
+
 
 ##################################################
+
 
 class SkeletonQueue(Sized):
     # TODO: handle this in a partially ordered way
@@ -199,7 +254,7 @@ class SkeletonQueue(Sized):
 
     ####################
 
-    #def _reenable_stream_plan(self, stream_plan):
+    # def _reenable_stream_plan(self, stream_plan):
     #    # TODO: only disable if not used elsewhere
     #    # TODO: could just hash instances
     #    # TODO: do I actually need to reenable? Yes it ensures that
@@ -247,8 +302,8 @@ class SkeletonQueue(Sized):
     def new_binding(self, binding):
         key = binding.get_key()
         if key in self.binding_from_key:
-            print('Binding already visited!') # Could happen if binding is the same
-            #return
+            print("Binding already visited!")  # Could happen if binding is the same
+            # return
         self.binding_from_key[key] = binding
         if not binding.is_enabled():
             return
@@ -272,15 +327,17 @@ class SkeletonQueue(Sized):
         # assert(instance.opt_index == 0)
         if not is_instance_ready(self.evaluations, instance):
             raise RuntimeError(instance)
-        new_results, _ = process_instance(self.store, self.domain, instance, disable=self.disable)
+        new_results, _ = process_instance(
+            self.store, self.domain, instance, disable=self.disable
+        )
         is_new = bool(new_results)
         for i, binding in enumerate(list(self.bindings_from_instance[instance])):
-            #print(i, binding)
+            # print(i, binding)
             # Maybe this list grows but not all the things are accounted for
             if self.is_enabled(binding):
                 binding.update_instances()
                 self.update_enabled(binding)
-        #print()
+        # print()
         return is_new
 
     def _process_root(self):
@@ -289,7 +346,7 @@ class SkeletonQueue(Sized):
         _, binding = heappop(self.queue)
         if not self.is_enabled(binding):
             return is_new
-        assert not binding.update_instances() #self.update_enabled(binding)
+        assert not binding.update_instances()  # self.update_enabled(binding)
         is_new = self._generate_results(binding.result.instance)
         # _decompose_synthesizer_skeleton(queue, skeleton, stream_index)
         if self.is_enabled(binding):
@@ -327,21 +384,25 @@ class SkeletonQueue(Sized):
     def accelerate_best_bindings(self):
         # TODO: reset the values for old streams
         for skeleton in self.skeletons:
-            for _, result in sorted(skeleton.best_binding.bound_results.items(), key=itemgetter(0)):
+            for _, result in sorted(
+                skeleton.best_binding.bound_results.items(), key=itemgetter(0)
+            ):
                 # TODO: just accelerate the facts within the plan preimage
-                result.call_index = 0 # Pretends the fact was first
+                result.call_index = 0  # Pretends the fact was first
                 new_complexity = result.compute_complexity(self.evaluations)
                 for fact in result.get_certified():
                     evaluation = evaluation_from_fact(fact)
                     if new_complexity < self.evaluations[evaluation].complexity:
-                        self.evaluations[evaluation] = EvaluationNode(new_complexity, result)
+                        self.evaluations[evaluation] = EvaluationNode(
+                            new_complexity, result
+                        )
 
     def process(self, stream_plan, action_plan, cost, complexity_limit, max_time=0):
         # TODO: manually add stream_plans for synthesizers/optimizers
         start_time = time.time()
         if is_plan(stream_plan):
-            #print([result for result in stream_plan if result.optimistic])
-            #raw_input('New skeleton')
+            # print([result for result in stream_plan if result.optimistic])
+            # raw_input('New skeleton')
             self.new_skeleton(stream_plan, action_plan, cost)
             self.greedily_process()
         elif stream_plan is INFEASIBLE:
@@ -349,7 +410,7 @@ class SkeletonQueue(Sized):
             self.process_until_new()
         self.timed_process(max_time - elapsed_time(start_time))
         self.accelerate_best_bindings()
-        #print(len(self.queue), len(self.skeletons),
+        # print(len(self.queue), len(self.skeletons),
         #      len(self.bindings_from_instance), len(self.binding_from_key))
 
         # Only currently blocking streams with after called
@@ -362,6 +423,7 @@ class SkeletonQueue(Sized):
 
     def __len__(self):
         return len(self.queue)
+
 
 ##################################################
 
